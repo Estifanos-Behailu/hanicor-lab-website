@@ -45,7 +45,7 @@ const Header = () => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled || isMobileMenuOpen 
-          ? "bg-black/70 backdrop-blur-xl shadow-2xl border-b border-gray-800/50" 
+          ? "bg-gray-900/40 backdrop-blur-xl shadow-2xl border-b border-gray-800/50" 
           : "bg-transparent"
       }`}
     >
@@ -75,7 +75,7 @@ const Header = () => {
               <Link
                 key={item.name}
                 href={item.href}
-                className="relative text-gray-300 hover:text-cyan-400 transition-all duration-300 text-sm font-medium group py-2"
+                className="relative text-gray-300 hover:text-cyan-400 transition-all duration-300 text-base font-medium group py-2"
               >
                 {item.name}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-500 group-hover:w-full transition-all duration-300" />
@@ -132,7 +132,7 @@ const Header = () => {
                 <motion.div variants={mobileMenuItemVariants} key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 text-lg font-medium"
+                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 text-xl font-medium"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.name}
