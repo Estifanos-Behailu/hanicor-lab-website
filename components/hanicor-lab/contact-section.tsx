@@ -10,6 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Mail, Send, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import emailjs from "@emailjs/browser"
+import { useState, useEffect } from "react"
 
 const contactFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -23,8 +25,22 @@ type ContactFormValues = z.infer<typeof contactFormSchema>
 const ContactSection = () => {
   const { scrollY } = useScroll()
   const y = useTransform(scrollY, [1000, 2000], [0, -100])
+  const [particles, setParticles] = useState<Array<{left: number, top: number, delay: number, duration: number}>>([])
   
   const { toast } = useToast()
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState<string>('')
+
+  useEffect(() => {
+    // Generate particle positions only on client side to avoid hydration mismatch
+    const newParticles = Array.from({ length: 35 }, (_, i) => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5,
+      duration: Math.random() * 6 + 5,
+    }))
+    setParticles(newParticles)
+  }, [])
   const {
     register,
     handleSubmit,
@@ -35,24 +51,55 @@ const ContactSection = () => {
   })
 
   const onSubmit: SubmitHandler<ContactFormValues> = async (data) => {
+    setEmailStatus('sending')
+    setErrorMessage('Message was not sent. Please try again.')
+    
     try {
-      // Simple form submission - you can integrate with your preferred email service later
-      console.log("Form submitted:", data)
-      
-      // Simulate a delay for form submission
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID
+      const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+      const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
 
-      toast({
-        title: "Message Received!",
-        description: "Thanks for reaching out. We'll get back to you within 24 hours.",
-        variant: "default",
-      })
-      reset()
+      if (!serviceId || !templateId || !publicKey) {
+        setEmailStatus('error')
+        toast({
+          title: "❌ Message Not Sent",
+          description: "Message was not sent. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      emailjs.init(publicKey)
+
+      const templateParams = {
+        from_name: data.name,
+        from_email: data.email,
+        company: data.company || "Not specified",
+        message: data.message,
+        to_name: "Hanicor Lab Team",
+        reply_to: data.email,
+      }
+
+      const response = await emailjs.send(serviceId, templateId, templateParams)
+      
+      if (response.status === 200) {
+        setEmailStatus('success')
+        toast({
+          title: "✅ Message Sent Successfully!",
+          description: "We'll get back to you within 24 hours.",
+          variant: "default",
+        })
+        reset()
+      } else {
+        throw new Error('Failed to send message')
+      }
     } catch (error) {
-      console.error("Form submission failed:", error)
+      console.error("Email sending failed:", error) // Keep error logging for debugging
+      
+      setEmailStatus('error')
       toast({
-        title: "Error",
-        description: "Failed to send message. Please try again later.",
+        title: "❌ Message Not Sent",
+        description: "Message was not sent. Please try again.",
         variant: "destructive",
       })
     }
@@ -81,13 +128,13 @@ const ContactSection = () => {
 
         {/* Floating Particles */}
         <div className="absolute inset-0">
-          {[...Array(35)].map((_, i) => (
+          {particles.map((particle, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-purple-400 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
               }}
               animate={{
                 y: [-40, -140],
@@ -95,9 +142,9 @@ const ContactSection = () => {
                 scale: [0.5, 1.2, 0.5],
               }}
               transition={{
-                duration: Math.random() * 6 + 5,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 5,
+                delay: particle.delay,
               }}
             />
           ))}
@@ -154,6 +201,44 @@ const ContactSection = () => {
           transition={{ duration: 1, delay: 0.3 }}
           className="max-w-2xl mx-auto"
         >
+          {/* Status Banner */}
+          {emailStatus !== 'idle' && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-6 p-4 rounded-xl border ${
+                emailStatus === 'sending' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
+                emailStatus === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+                'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                {emailStatus === 'sending' && (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
+                    <p>Sending your message...</p>
+                  </>
+                )}
+                {emailStatus === 'success' && (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p>Message sent successfully! We'll respond within 24 hours.</p>
+                  </>
+                )}
+                {emailStatus === 'error' && (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <p>Message was not sent. Please try again.</p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           <div className="relative bg-gray-900/40 backdrop-blur-xl p-8 sm:p-12 rounded-3xl border border-gray-800 shadow-2xl">
             {/* Glassmorphism overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 via-transparent to-cyan-400/5 rounded-3xl" />
@@ -169,6 +254,7 @@ const ContactSection = () => {
                     {...register("name")}
                     placeholder="Your Name"
                     className="bg-gray-800/50 border-gray-700 focus:border-cyan-400 focus:ring-cyan-400/20 text-white placeholder-gray-400 rounded-xl h-12"
+                    disabled={isSubmitting}
                   />
                   {errors.name && <p className="text-sm text-red-400 mt-2">{errors.name.message}</p>}
                 </div>
@@ -182,6 +268,7 @@ const ContactSection = () => {
                     {...register("email")}
                     placeholder="your@email.com"
                     className="bg-gray-800/50 border-gray-700 focus:border-cyan-400 focus:ring-cyan-400/20 text-white placeholder-gray-400 rounded-xl h-12"
+                    disabled={isSubmitting}
                   />
                   {errors.email && <p className="text-sm text-red-400 mt-2">{errors.email.message}</p>}
                 </div>
@@ -196,53 +283,39 @@ const ContactSection = () => {
                   {...register("company")}
                   placeholder="Your Company"
                   className="bg-gray-800/50 border-gray-700 focus:border-cyan-400 focus:ring-cyan-400/20 text-white placeholder-gray-400 rounded-xl h-12"
+                  disabled={isSubmitting}
                 />
               </div>
               
               <div>
                 <Label htmlFor="message" className="text-gray-300 mb-2 block font-medium">
-                  What Do You Need Help With?
+                  Message
                 </Label>
                 <Textarea
                   id="message"
                   {...register("message")}
-                  placeholder="Tell us about your project or needs..."
-                  rows={5}
-                  className="bg-gray-800/50 border-gray-700 focus:border-cyan-400 focus:ring-cyan-400/20 text-white placeholder-gray-400 rounded-xl resize-none"
+                  placeholder="Tell us about your project..."
+                  className="bg-gray-800/50 border-gray-700 focus:border-cyan-400 focus:ring-cyan-400/20 text-white placeholder-gray-400 rounded-xl min-h-[120px]"
+                  disabled={isSubmitting}
                 />
                 {errors.message && <p className="text-sm text-red-400 mt-2">{errors.message.message}</p>}
               </div>
               
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 text-white font-medium rounded-xl transition-all duration-200 relative overflow-hidden group"
+                disabled={isSubmitting}
               >
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-semibold text-lg py-4 rounded-xl border-0 group relative overflow-hidden"
-                  disabled={isSubmitting}
-                >
-                  {/* Button background animation */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
-                  <div className="relative z-10 flex items-center justify-center">
-                    {isSubmitting ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
-                      />
-                    ) : (
-                      <Send className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    )}
-                    {isSubmitting ? "Sending..." : "Send Message"}
-                    {!isSubmitting && (
-                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    )}
-                  </div>
-                </Button>
-              </motion.div>
+                <span className={`absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200 ${isSubmitting ? 'opacity-100' : 'opacity-0'}`}>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
+                <span className={`transition-opacity duration-200 ${isSubmitting ? 'opacity-0' : 'opacity-100'}`}>
+                  Send Message
+                </span>
+              </Button>
             </form>
           </div>
         </motion.div>

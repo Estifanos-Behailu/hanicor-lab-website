@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion"
 import { Users, Zap, ShieldCheck, TrendingUp, CheckCircle } from "lucide-react"
+import { useState, useEffect } from "react"
 
 const cardVariants = {
   hidden: { opacity: 0, y: 50 },
@@ -20,6 +21,18 @@ const AboutSection = () => {
   const { scrollY } = useScroll()
   const y = useTransform(scrollY, [0, 1000], [0, -100])
   const opacity = useTransform(scrollY, [400, 800], [0, 1])
+  const [particles, setParticles] = useState<Array<{left: number, top: number, delay: number, duration: number}>>([])
+
+  useEffect(() => {
+    // Generate particle positions only on client side to avoid hydration mismatch
+    const newParticles = Array.from({ length: 30 }, (_, i) => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 3,
+      duration: Math.random() * 4 + 3,
+    }))
+    setParticles(newParticles)
+  }, [])
 
   const whyChooseUsItems = [
     {
@@ -67,22 +80,22 @@ const AboutSection = () => {
 
         {/* Floating Particles */}
         <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
+          {particles.map((particle, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-blue-400 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
               }}
               animate={{
                 y: [-20, -80],
                 opacity: [0, 0.8, 0],
               }}
               transition={{
-                duration: Math.random() * 4 + 3,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 3,
+                delay: particle.delay,
               }}
             />
           ))}

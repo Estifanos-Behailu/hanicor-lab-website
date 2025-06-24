@@ -8,12 +8,21 @@ import Link from "next/link";
 
 const HeroSection = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const [particles, setParticles] = useState<Array<{left: number, top: number, delay: number, duration: number}>>([]);
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   useEffect(() => {
     setIsMounted(true);
+    // Generate particle positions only on client side to avoid hydration mismatch
+    const newParticles = Array.from({ length: 50 }, (_, i) => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 2,
+      duration: Math.random() * 3 + 2,
+    }))
+    setParticles(newParticles)
   }, []);
 
   if (!isMounted) return null;
@@ -42,22 +51,22 @@ const HeroSection = () => {
 
         {/* Floating Particles */}
         <div className="absolute inset-0">
-          {[...Array(50)].map((_, i) => (
+          {particles.map((particle, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-cyan-400 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
               }}
               animate={{
                 y: [-20, -100],
                 opacity: [0, 1, 0],
               }}
               transition={{
-                duration: Math.random() * 3 + 2,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 2,
+                delay: particle.delay,
               }}
             />
           ))}

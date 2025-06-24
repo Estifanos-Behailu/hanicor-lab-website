@@ -4,9 +4,22 @@ import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Heart } from "lucide-react"
+import { useState, useEffect } from "react"
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
+  const [particles, setParticles] = useState<Array<{left: number, top: number, delay: number, duration: number}>>([])
+
+  useEffect(() => {
+    // Generate particle positions only on client side to avoid hydration mismatch
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 2,
+      duration: Math.random() * 3 + 2,
+    }))
+    setParticles(newParticles)
+  }, [])
 
   return (
     <motion.footer
@@ -44,22 +57,22 @@ const Footer = () => {
 
         {/* Floating Particles */}
         <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
+          {particles.map((particle, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-cyan-400 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
               }}
               animate={{
                 y: [-20, -60],
                 opacity: [0, 0.6, 0],
               }}
               transition={{
-                duration: Math.random() * 3 + 2,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 2,
+                delay: particle.delay,
               }}
             />
           ))}
