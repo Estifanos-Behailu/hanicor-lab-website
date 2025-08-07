@@ -4,6 +4,7 @@ import { Poppins } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
+import Script from "next/script"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -26,6 +27,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(poppins.variable, "scroll-smooth")} suppressHydrationWarning>
       <body className="bg-background text-foreground font-sans antialiased">
+        <Script 
+          src="https://cdn.botpress.cloud/webchat/v3.2/inject.js" 
+          strategy="beforeInteractive"
+        />
+        <Script 
+          src="https://files.bpcontent.cloud/2025/08/07/08/20250807084543-7THXBVTF.js" 
+          strategy="afterInteractive"
+        />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>

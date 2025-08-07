@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
+// TypeScript declarations for Botpress WebChat
+declare global {
+  interface Window {
+    botpressWebChat?: {
+      onEvent: (callback: () => void, events: string[]) => void
+      sendEvent: (event: { type: string }) => void
+    }
+  }
+}
+
 const navItems = [
   { name: "Home", href: "#home" },
   { name: "About", href: "#about" },
